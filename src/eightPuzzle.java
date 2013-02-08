@@ -16,8 +16,8 @@ public class eightPuzzle
 		//Board b = new Board(new int[] {5,6,7,4,0,8,3,2,1});//worst
 		
 		eightPuzzle solver = new eightPuzzle();
-		System.out.println("===DFS===");
-		solver.dfs(b);
+		//solver.dfs(b);
+		solver.bfs(b);
 	}
 	
 	
@@ -28,6 +28,7 @@ public class eightPuzzle
 	 */
 	public void dfs(Board b)
 	{
+		System.out.println("===DFS===");
 		int count = 0;//used to output the first 15 nodes visited
 		String first15states = "";
 		HashSet<String> observedNodes = new HashSet<String>();//keeps track of visited states
@@ -35,24 +36,77 @@ public class eightPuzzle
 		
 		while(!b.equals(goal))
 		{
-			observedNodes.add(b.toString());
-			stack.addAll(b.getSuccessors());
-			b = stack.pop();
-			while(observedNodes.contains(b.toString()))
+			observedNodes.add(b.toString()); //add current state to observed nodes
+			stack.addAll(b.getSuccessors()); //add all successors to stack
+			b = stack.pop();				 //get first successor from stack
+			while(observedNodes.contains(b.toString())) //go to the next unobserved state
 			{
-				b = stack.pop();
+				b = stack.pop(); 
 			}
 			if(count < 15)
 			{
 				first15states += b + "\n";
 				count++;
 			}
+			System.out.println(b);
 		}
 		System.out.println(observedNodes.size() + " nodes examined.");
 		if(observedNodes.size() < 10000)
 			printHistory(b);
 		else
 			System.out.println("Not printing history--leads to stack overflow");
+		System.out.println(first15states);
+	}
+	public void bfs(Board b){
+		System.out.println("===BFS===");
+
+		int count = 0;
+		String first15states = "";
+		HashSet<String> observedNodes = new HashSet<String>();
+		Stack<Board> stack = new Stack<Board>();
+		if(!b.equals(goal))
+		{
+			observedNodes.add(b.toString()); //add first board to list of observed nodes
+			stack.addAll(b.getSuccessors()); //get successors
+			b = stack.pop();				 //get first successor
+			while(observedNodes.contains(b.toString()))	//go to first unobserved node in stack
+			{
+				b = stack.pop();
+			}
+			//System.out.println(b);
+			Stack<Board> tempStack = new Stack<Board>();
+			while(!b.equals(goal)){						//checks board for goal
+				while(observedNodes.contains(b.toString()))	//go to first unobserved node in stack
+				{
+					b = stack.pop();
+				}
+				while(!stack.empty() && !b.equals(goal)){ //go through stack and check for solution
+					observedNodes.add(b.toString()); //adds to list of observed nodes
+					tempStack.push(b);   //adds observed nodes to temporary stack
+					b = stack.pop();     //gets next node
+					while(observedNodes.contains(b.toString()))	//go to first unobserved node in stack
+					{
+						b = stack.pop();
+					}
+					//System.out.println(b);
+				}
+				if(!b.equals(goal)){    //goes through list of observed nodes and generates successors
+					while(!tempStack.empty()){ //loads successors of current frontier into stack
+						stack.addAll(tempStack.pop().getSuccessors());//adds successors to stack
+					}
+				}
+			}
+			if(count < 15){
+				first15states += b + "\n";
+				count++;
+			}
+		}
+		if(observedNodes.size() < 10000){
+			printHistory(b);
+		}
+		else{
+			System.out.println("Not printing history--leads to stack overflow");
+		}
 		System.out.println(first15states);
 	}
 	
