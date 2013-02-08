@@ -48,7 +48,7 @@ public class eightPuzzle
 				first15states += b + "\n";
 				count++;
 			}
-			System.out.println(b);
+			//System.out.println(b);
 		}
 		System.out.println(observedNodes.size() + " nodes examined.");
 		if(observedNodes.size() < 10000)
@@ -88,7 +88,7 @@ public class eightPuzzle
 					observedNodes.add(b.toString()); //adds to list of observed nodes
 					tempStack.push(b);   //adds observed nodes to temporary stack
 					b = stack.pop();     //gets next node
-					while(observedNodes.contains(b.toString()))	//go to first unobserved node in stack
+					while(observedNodes.contains(b.toString()) && !stack.empty())	//go to first unobserved node in stack
 					{
 						b = stack.pop();
 					}
@@ -109,6 +109,7 @@ public class eightPuzzle
 				count++;
 			}
 		}
+		System.out.println(observedNodes.size() + " nodes examined.");
 		if(observedNodes.size() < 10000){
 			printHistory(b);
 		}
