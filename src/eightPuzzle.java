@@ -75,6 +75,10 @@ public class eightPuzzle
 			}
 			//System.out.println(b);
 			Stack<Board> tempStack = new Stack<Board>();
+			if(count < 15){
+				first15states += b + "\n";
+				count++;
+			}
 			while(!b.equals(goal)){						//checks board for goal
 				while(observedNodes.contains(b.toString()))	//go to first unobserved node in stack
 				{
@@ -87,6 +91,10 @@ public class eightPuzzle
 					while(observedNodes.contains(b.toString()))	//go to first unobserved node in stack
 					{
 						b = stack.pop();
+					}
+					if(count < 15){
+						first15states += b + "\n";
+						count++;
 					}
 					//System.out.println(b);
 				}
