@@ -1,6 +1,7 @@
 import java.util.HashSet;
 import java.util.Stack;
 import java.util.Vector;
+import java.util.Queue;
 
 public class eightPuzzle
 {
@@ -10,14 +11,15 @@ public class eightPuzzle
 	{
 		goal = new Board(new int[] {1,2,3,8,0,4,7,6,5});
 		
-		Board b = new Board(new int[] {1,3,4,8,6,2,7,0,5});//easy
+		//Board b = new Board(new int[] {1,3,4,8,6,2,7,0,5});//easy
 		//Board b = new Board(new int[] {2,8,1,0,4,3,7,6,5});//medium
 		//Board b = new Board(new int[] {2,8,1,4,6,3,0,7,5});//hard
 		//Board b = new Board(new int[] {5,6,7,4,0,8,3,2,1});//worst
 		
 		eightPuzzle solver = new eightPuzzle();
 		//solver.dfs(b);
-		solver.bfs(b);
+		//solver.bfs(b); //1
+		solver.bestFirst(b); //2
 	}
 	
 	
@@ -118,7 +120,127 @@ public class eightPuzzle
 		}
 		System.out.println(first15states);
 	}
+
 	
+	public void bestFirst(Board b){
+		System.out.println("===Best-First===");
+		int count = 0;//used to output the first 15 nodes visited
+		String first15states = "";
+		HashSet<String> observedNodes = new HashSet<String>();//keeps track of visited states
+		Stack<Board> stack = new Stack<Board>();//holds future states to explore 
+		Vector<Board> successors = new Vector<Board>();
+		while(!b.equals(goal)){
+			observedNodes.add(b.toString()); //add current state to observed nodes
+			stack.addAll(b.getSuccessors()); //add all successors to stack
+			if(count < 15)
+			{
+				first15states += b + "\n";
+				count++;
+			}
+			while(!stack.empty()){
+				b=stack.pop();
+				if(!observedNodes.contains(b.toString())){
+					b.setCostEstimate(heuristic(b));
+					successors.add(b);
+				}
+			}
+			successors = sortByCost(successors, successors.size());
+			b = successors.elementAt(0);
+			successors.removeElementAt(0);
+			//System.out.println(b);
+		}
+		if(count < 15)
+		{
+			first15states += b + "\n";
+			count++;
+		}
+		System.out.println(observedNodes.size() + " nodes examined.");
+		if(observedNodes.size() < 10000)
+			printHistory(b);
+		else
+			System.out.println("Not printing history--leads to stack overflow");
+		System.out.println(first15states);
+	}
+	public Vector<Board> sortByCost(Vector<Board> successors, int size){
+		Vector<Board> sortedBoard = new Vector<Board>();
+		while(successors.size() > 0){
+			int index = 0;
+			int temp2 = successors.elementAt(0).getCostEstimate();
+			if(successors.size() > 1){
+				for(int i = 1; i < successors.size(); ++i){
+					int temp = successors.elementAt(i).getCostEstimate();
+					if(temp > temp2){
+						temp2 = temp;
+						index = i;
+					}
+				}
+			}
+			sortedBoard.add(successors.elementAt(index));
+			successors.removeElementAt(index);
+		}
+		/*for(int i = 0; i < sortedBoard.size(); ++i){
+			System.out.println(sortedBoard.elementAt(i));
+		}*/
+		return sortedBoard;
+	}
+	/*
+	public Vector<Board> sortByCost(Vector<Board> successors, int size){
+		if(size > 1){
+			Vector<Board> B1 = new Vector<Board>();
+			Vector<Board> B2 = new Vector<Board>();
+			if(size % 2 == 0){
+				for(int i = 0; i < size; ++i){
+					if(i < size / 2){
+						B1.add(successors.elementAt(i));	
+					}
+					else{
+						B2.add(successors.elementAt(i));
+					}
+				}
+			}
+			else{
+				for(int i = 0; i < size; ++i){
+					if(i > (size / 2) + 1){
+						B2.add(successors.elementAt(i));
+					}
+					else{
+						B1.add(successors.elementAt(i));
+					}
+				}
+			}
+			return merge(sortByCost(B1, B1.size()), sortByCost(B2, B2.size()));
+		}
+		else{
+			return successors;
+		}
+		
+	}
+	public Vector<Board> merge(Vector<Board> B1, Vector<Board> B2)
+	{
+		Vector<Board> B3 = new Vector<Board>();
+		int maxSize = B1.size() + B2.size();
+		int index2 = 0;
+		for(int i = 0; i+index2 < maxSize; ++i){
+			if(B1.elementAt(i).getCostEstimate() < B2.elementAt(index2).getCostEstimate()){
+				B3.add(B1.elementAt(i));
+			}
+			else{
+				B3.add(B2.elementAt(index2));
+				++index2;
+			}
+		}
+		return B3;
+	}
+	*/
+	public int heuristic(Board b){
+		int h = 0;
+		for(int i = 0; i < b.board.length; ++i){
+			if(b.board[i] == goal.board[i]){
+				++h;
+			}
+		}
+		return h;
+	}
 	/*
 	 * This method prints the move history of the beginning state to the current state 
 	 *   where each move is understood as moving the blank so that
