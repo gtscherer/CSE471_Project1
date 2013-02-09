@@ -11,7 +11,7 @@ public class eightPuzzle
 	{
 		goal = new Board(new int[] {1,2,3,8,0,4,7,6,5});
 		
-		//Board b = new Board(new int[] {1,3,4,8,6,2,7,0,5});//easy
+		Board b = new Board(new int[] {1,3,4,8,6,2,7,0,5});//easy
 		//Board b = new Board(new int[] {2,8,1,0,4,3,7,6,5});//medium
 		//Board b = new Board(new int[] {2,8,1,4,6,3,0,7,5});//hard
 		//Board b = new Board(new int[] {5,6,7,4,0,8,3,2,1});//worst
@@ -19,7 +19,11 @@ public class eightPuzzle
 		eightPuzzle solver = new eightPuzzle();
 		//solver.dfs(b);
 		//solver.bfs(b); //1
-		solver.bestFirst(b); //2
+		//solver.bestFirst(b); //2
+		//solver.AStar(b); //3
+		//solver.AStarManhattan(b); //4
+		//solver.AStarManhattan2(b); //5
+		solver.iterativeDeepening(b); //6
 	}
 	
 	
@@ -123,7 +127,45 @@ public class eightPuzzle
 
 	
 	public void bestFirst(Board b){
+
 		System.out.println("===Best-First===");
+		int count = 0;//used to output the first 15 nodes visited
+		String first15states = "";
+		HashSet<String> observedNodes = new HashSet<String>();//keeps track of visited states
+		Stack<Board> stack = new Stack<Board>();//holds future states to explore 
+		Vector<Board> open = new Vector<Board>();
+		while(!b.equals(goal)){
+			observedNodes.add(b.toString()); //add current state to observed nodes
+			stack.addAll(b.getSuccessors()); //add all successors to stack
+			if(count < 15)
+			{
+				first15states += b + "\n";
+				count++;
+			}
+			while(!stack.empty()){
+				b=stack.pop();
+				if(!observedNodes.contains(b.toString())){
+					b.setCostEstimate(heuristic(b));
+					open.add(b);
+				}
+			}
+			open = sortByCost(open, open.size());
+			b = open.elementAt(0);
+			open.removeElementAt(0);
+			//System.out.println(b);
+		}
+		System.out.println(observedNodes.size() + " nodes examined.");
+		if(observedNodes.size() < 10000)
+			printHistory(b);
+		else
+			System.out.println("Not printing history--leads to stack overflow");
+		System.out.println(first15states);
+	}
+
+	
+	public void AStar(Board b){
+
+		System.out.println("===A*===");
 		int count = 0;//used to output the first 15 nodes visited
 		String first15states = "";
 		HashSet<String> observedNodes = new HashSet<String>();//keeps track of visited states
@@ -149,10 +191,41 @@ public class eightPuzzle
 			successors.removeElementAt(0);
 			//System.out.println(b);
 		}
-		if(count < 15)
-		{
-			first15states += b + "\n";
-			count++;
+		System.out.println(observedNodes.size() + " nodes examined.");
+		if(observedNodes.size() < 10000)
+			printHistory(b);
+		else
+			System.out.println("Not printing history--leads to stack overflow");
+		System.out.println(first15states);
+	}
+	
+	public void AStarManhattan(Board b){
+
+		System.out.println("===A* Manhattan===");
+		int count = 0;//used to output the first 15 nodes visited
+		String first15states = "";
+		HashSet<String> observedNodes = new HashSet<String>();//keeps track of visited states
+		Stack<Board> stack = new Stack<Board>();//holds future states to explore 
+		Vector<Board> successors = new Vector<Board>();
+		while(!b.equals(goal)){
+			observedNodes.add(b.toString()); //add current state to observed nodes
+			stack.addAll(b.getSuccessors()); //add all successors to stack
+			if(count < 15)
+			{
+				first15states += b + "\n";
+				count++;
+			}
+			while(!stack.empty()){
+				b=stack.pop();
+				if(!observedNodes.contains(b.toString())){
+					b.setCostEstimate(heuristicManhattan(b));
+					successors.add(b);
+				}
+			}
+			successors = sortByCost(successors, successors.size());
+			b = successors.elementAt(successors.size() - 1);
+			successors.removeElementAt(successors.size() - 1);
+			//System.out.println(b);
 		}
 		System.out.println(observedNodes.size() + " nodes examined.");
 		if(observedNodes.size() < 10000)
@@ -161,6 +234,81 @@ public class eightPuzzle
 			System.out.println("Not printing history--leads to stack overflow");
 		System.out.println(first15states);
 	}
+	
+	public void AStarManhattan2(Board b){
+
+		System.out.println("===A* Manhattan x2===");
+		int count = 0;//used to output the first 15 nodes visited
+		String first15states = "";
+		HashSet<String> observedNodes = new HashSet<String>();//keeps track of visited states
+		Stack<Board> stack = new Stack<Board>();//holds future states to explore 
+		Vector<Board> successors = new Vector<Board>();
+		while(!b.equals(goal)){
+			observedNodes.add(b.toString()); //add current state to observed nodes
+			stack.addAll(b.getSuccessors()); //add all successors to stack
+			if(count < 15)
+			{
+				first15states += b + "\n";
+				count++;
+			}
+			while(!stack.empty()){
+				b=stack.pop();
+				if(!observedNodes.contains(b.toString())){
+					b.setCostEstimate(heuristicManhattan(b)*2);
+					successors.add(b);
+				}
+			}
+			successors = sortByCost(successors, successors.size());
+			b = successors.elementAt(successors.size() - 1);
+			successors.removeElementAt(successors.size() - 1);
+			//System.out.println(b);
+		}
+		System.out.println(observedNodes.size() + " nodes examined.");
+		if(observedNodes.size() < 10000)
+			printHistory(b);
+		else
+			System.out.println("Not printing history--leads to stack overflow");
+		System.out.println(first15states);
+	}
+	
+	//maybe write a function that will search at certain depths and then use a loop...
+	public void iterativeDeepening(Board b)
+	{
+		System.out.println("===IDS===");
+		int count = 0;//used to output the first 15 nodes visited
+		String first15states = "";
+		HashSet<String> observedNodes = new HashSet<String>();//keeps track of visited states
+		Stack<Board> stack = new Stack<Board>();//holds future states to explore 
+		int depth = 0;
+		while(!b.equals(goal))
+		{
+			for(int i = 0; i < depth; ++i){
+				observedNodes.add(b.toString()); //add current state to observed nodes
+				stack.addAll(b.getSuccessors()); //add all successors to stack
+				b = stack.pop();				 //get first successor from stack
+				while(observedNodes.contains(b.toString())) //go to the next unobserved state
+				{
+					b = stack.pop(); 
+				}
+				if(count < 15)
+				{
+					first15states += b + "\n";
+					count++;
+				}
+			}
+			++depth;
+			//System.out.println(b);
+		}
+		System.out.println(observedNodes.size() + " nodes examined.");
+		if(observedNodes.size() < 10000)
+			printHistory(b);
+		else
+			System.out.println("Not printing history--leads to stack overflow");
+		System.out.println(first15states);
+	}
+	
+	
+	
 	public Vector<Board> sortByCost(Vector<Board> successors, int size){
 		Vector<Board> sortedBoard = new Vector<Board>();
 		while(successors.size() > 0){
@@ -183,6 +331,7 @@ public class eightPuzzle
 		}*/
 		return sortedBoard;
 	}
+	
 	/*
 	public Vector<Board> sortByCost(Vector<Board> successors, int size){
 		if(size > 1){
@@ -232,6 +381,7 @@ public class eightPuzzle
 		return B3;
 	}
 	*/
+
 	public int heuristic(Board b){
 		int h = 0;
 		for(int i = 0; i < b.board.length; ++i){
@@ -241,6 +391,59 @@ public class eightPuzzle
 		}
 		return h;
 	}
+	
+	public int heuristicManhattan(Board b){
+		int g = 0;
+		for(int i = 0; i < 3; ++i){
+			for(int j = 0; j < 3; ++j){
+				int tile = b.getTileAt(i, j);
+				g += getDistance(tile, i, j);
+			}
+		}
+		return g;
+	}
+	public int getDistance(int tile, int x, int y){
+		int distance = 0;
+		switch(tile){
+		case 0:
+			distance = abs(1 - x) + abs(1-y);
+			break;
+		case 1:
+			distance = abs(0 - x) + abs(0 - y);
+			break;
+		case 2: 
+			distance = abs(1 - x) + abs(0 - y);
+			break;
+		case 3:
+			distance = abs(2-x) + abs(0-y);
+			break;
+		case 4:
+			distance = abs(2-x) + abs(1-y);
+			break;
+		case 5:
+			distance = abs(2-x) + abs(2-y);
+			break;
+		case 6:
+			distance = abs(1-x) + abs(2-y);
+			break;
+		case 7:
+			distance = abs(0-x) + abs(2-y);
+			break;
+		case 8:
+			distance = abs(0-x) + abs(1-y);
+			break;
+		}
+		return distance;
+	}
+	public int abs(int x){
+		if(x < 0){
+			return x*-1;
+		}
+		else{
+			return x;
+		}
+	}
+	
 	/*
 	 * This method prints the move history of the beginning state to the current state 
 	 *   where each move is understood as moving the blank so that
