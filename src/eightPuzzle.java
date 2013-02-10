@@ -1,7 +1,6 @@
 import java.util.HashSet;
 import java.util.Stack;
 import java.util.Vector;
-import java.util.Queue;
 
 public class eightPuzzle
 {
@@ -11,8 +10,8 @@ public class eightPuzzle
 	{
 		goal = new Board(new int[] {1,2,3,8,0,4,7,6,5});
 		
-		Board b = new Board(new int[] {1,3,4,8,6,2,7,0,5});//easy
-		//Board b = new Board(new int[] {2,8,1,0,4,3,7,6,5});//medium
+		//Board b = new Board(new int[] {1,3,4,8,6,2,7,0,5});//easy
+		Board b = new Board(new int[] {2,8,1,0,4,3,7,6,5});//medium
 		//Board b = new Board(new int[] {2,8,1,4,6,3,0,7,5});//hard
 		//Board b = new Board(new int[] {5,6,7,4,0,8,3,2,1});//worst
 		
@@ -22,8 +21,8 @@ public class eightPuzzle
 		//solver.bestFirst(b); //2
 		//solver.AStar(b); //3
 		//solver.AStarManhattan(b); //4
-		//solver.AStarManhattan2(b); //5
-		solver.iterativeDeepening(b); //6
+		solver.AStarManhattan2(b); //5
+		//solver.iterativeDeepening(b); //6
 	}
 	
 	
@@ -182,7 +181,7 @@ public class eightPuzzle
 			while(!stack.empty()){
 				b=stack.pop();
 				if(!observedNodes.contains(b.toString())){
-					b.setCostEstimate(heuristic(b));
+					b.setCostEstimate(heuristic(b) + b.getPathFromStartNode().size());
 					successors.add(b);
 				}
 			}
@@ -218,7 +217,7 @@ public class eightPuzzle
 			while(!stack.empty()){
 				b=stack.pop();
 				if(!observedNodes.contains(b.toString())){
-					b.setCostEstimate(heuristicManhattan(b));
+					b.setCostEstimate(heuristicManhattan(b) + b.getPathFromStartNode().size());
 					successors.add(b);
 				}
 			}
@@ -254,7 +253,7 @@ public class eightPuzzle
 			while(!stack.empty()){
 				b=stack.pop();
 				if(!observedNodes.contains(b.toString())){
-					b.setCostEstimate(heuristicManhattan(b)*2);
+					b.setCostEstimate((heuristicManhattan(b)*2) + b.getPathFromStartNode().size());
 					successors.add(b);
 				}
 			}
@@ -318,7 +317,7 @@ public class eightPuzzle
 				for(int i = 1; i < successors.size(); ++i){
 					int temp = successors.elementAt(i).getCostEstimate();
 					if(temp > temp2){
-						temp2 = temp;
+						temp = temp2;
 						index = i;
 					}
 				}
