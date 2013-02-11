@@ -11,9 +11,9 @@ public class eightPuzzle
 		goal = new Board(new int[] {1,2,3,8,0,4,7,6,5});
 		
 		//Board b = new Board(new int[] {1,3,4,8,6,2,7,0,5});//easy
-		Board b = new Board(new int[] {2,8,1,0,4,3,7,6,5});//medium
+		//Board b = new Board(new int[] {2,8,1,0,4,3,7,6,5});//medium
 		//Board b = new Board(new int[] {2,8,1,4,6,3,0,7,5});//hard
-		//Board b = new Board(new int[] {5,6,7,4,0,8,3,2,1});//worst
+		Board b = new Board(new int[] {5,6,7,4,0,8,3,2,1});//worst
 		
 		eightPuzzle solver = new eightPuzzle();
 		//solver.dfs(b);
@@ -21,8 +21,9 @@ public class eightPuzzle
 		//solver.bestFirst(b); //2
 		//solver.AStar(b); //3
 		//solver.AStarManhattan(b); //4
-		solver.AStarManhattan2(b); //5
+		//solver.AStarManhattan2(b); //5
 		//solver.iterativeDeepening(b); //6
+		solver.iterativeDeepeningAStar(b); //7
 	}
 	
 	
@@ -273,41 +274,419 @@ public class eightPuzzle
 	//maybe write a function that will search at certain depths and then use a loop...
 	public void iterativeDeepening(Board b)
 	{
-		System.out.println("===IDS===");
-		int count = 0;//used to output the first 15 nodes visited
-		String first15states = "";
-		HashSet<String> observedNodes = new HashSet<String>();//keeps track of visited states
-		Stack<Board> stack = new Stack<Board>();//holds future states to explore 
-		int depth = 0;
-		while(!b.equals(goal))
 		{
-			for(int i = 0; i < depth; ++i){
-				observedNodes.add(b.toString()); //add current state to observed nodes
-				stack.addAll(b.getSuccessors()); //add all successors to stack
-				b = stack.pop();				 //get first successor from stack
-				while(observedNodes.contains(b.toString())) //go to the next unobserved state
-				{
-					b = stack.pop(); 
-				}
-				if(count < 15)
-				{
-					first15states += b + "\n";
-					count++;
+			System.out.println("===Iterative Deepening===");
+			int count = 0;//used to output the first 15 nodes visited
+			String first15states = "";
+			HashSet<String> observedNodes = new HashSet<String>();//keeps track of visited states
+			Vector<Board> vectorStk = new Vector<Board>();//holds future states to explore 
+			Vector<Board> successors = new Vector<Board>();
+			int depth = 0;
+			successors.addElement(b);
+			while(!b.equals(goal))
+			{
+				++depth;
+				int i = 0;
+				HashSet<String> observedNodesTemp = new HashSet<String>();
+				while(!b.equals(goal) && successors.size() > i){
+					observedNodes.add(b.toString()); //add current state to observed nodes
+					observedNodesTemp.add(b.toString());
+					vectorStk.addAll(b.getSuccessors()); //add all successors to stack
+					if(count < 15)
+					{
+						first15states += b + "\n";
+						count++;
+					}
+					while((vectorStk.size() > 0)){
+						b = vectorStk.elementAt(0);
+						b.setCostEstimate(i + 1);
+						if(!(b.getCostEstimate() > depth)){
+							successors.add(b);
+						}
+						vectorStk.removeElementAt(0);
+					}
+					b = successors.elementAt(0);
+									 //get first successor from stack
+					boolean notEmpty = true;
+					while(observedNodesTemp.contains(b.toString()) && notEmpty) //go to the next unobserved state
+					{
+						int index = successors.indexOf(b);
+						if((index + 1 < successors.size())){
+							b = successors.elementAt(index + 1);
+						}
+						else{
+							notEmpty = false;
+						}
+						successors.removeElementAt(index);
+						//System.out.println(successors.size());
+					}
+					++i;
+					//System.out.println(b);
+	
 				}
 			}
-			++depth;
-			//System.out.println(b);
+			System.out.println(observedNodes.size() + " nodes examined.");
+			if(observedNodes.size() < 10000)
+				printHistory(b);
+			else
+				System.out.println("Not printing history--leads to stack overflow");
+			System.out.println(first15states);
 		}
-		System.out.println(observedNodes.size() + " nodes examined.");
-		if(observedNodes.size() < 10000)
-			printHistory(b);
-		else
-			System.out.println("Not printing history--leads to stack overflow");
-		System.out.println(first15states);
+	}
+	public void iterativeDeepeningAStar(Board b)
+	{
+		{
+			System.out.println("===Iterative Deepening A*===");
+			int count = 0;//used to output the first 15 nodes visited
+			String first15states = "";
+			HashSet<String> observedNodes = new HashSet<String>();//keeps track of visited states
+			Vector<Board> vectorStk = new Vector<Board>();//holds future states to explore 
+			Vector<Board> successors = new Vector<Board>();
+			int depth = heuristicManhattan(b) + b.getPathFromStartNode().size();
+			int FirstDepth = depth;
+			vectorStk = b.getSuccessors();
+			successors.addElement(b);
+			for(int i = 0; i < vectorStk.size(); ++i){
+				vectorStk.elementAt(i).setCostEstimate(heuristicManhattan(vectorStk.elementAt(i)) + vectorStk.elementAt(i).getPathFromStartNode().size());
+			}
+			Board c = b;
+			vectorStk = sortByCost(vectorStk, vectorStk.size());
+			int nextDepth = vectorStk.elementAt(vectorStk.size() - 1).getCostEstimate();
+			while(!b.equals(goal))
+			{
+				depth = nextDepth;
+				int i = 0;
+				HashSet<String> observedNodesTemp = new HashSet<String>();
+				if(successors.size() < 0){
+					successors.addElement(c);
+					b = c;
+				}
+				while(!b.equals(goal) && successors.size() > i){
+					observedNodes.add(b.toString()); //add current state to observed nodes
+					observedNodesTemp.add(b.toString());
+					vectorStk.addAll(b.getSuccessors()); //add all successors to stack
+					if(count < 15)
+					{
+						first15states += b + "\n";
+						count++;
+					}
+					int asdf = 0;
+					while((vectorStk.size() > 0)){
+						b = vectorStk.elementAt(0);
+						b.setCostEstimate(i + 1);
+						if(!(b.getCostEstimate() > depth)){
+							successors.add(b);
+						}
+						else if(asdf == 0){
+							nextDepth = b.getCostEstimate();
+							++asdf;
+
+						}
+						else if(b.getCostEstimate() < nextDepth){
+							nextDepth = b.getCostEstimate();
+						}
+						vectorStk.removeElementAt(0);
+					}
+					b = successors.elementAt(0);
+									 //get first successor from stack
+					boolean notEmpty = true;
+					while(observedNodesTemp.contains(b.toString()) && notEmpty) //go to the next unobserved state
+					{
+						int index = successors.indexOf(b);
+						if((index + 1 < successors.size())){
+							b = successors.elementAt(index + 1);
+						}
+						else{
+							notEmpty = false;
+						}
+						successors.removeElementAt(index);
+						//System.out.println(successors.size());
+					}
+					++i;
+					//System.out.println(b);
+	
+				}
+				if(depth == nextDepth){
+					nextDepth = depth + 1;
+				}
+			}
+			System.out.println(observedNodes.size() + " nodes examined.");
+			if(observedNodes.size() < 10000)
+				printHistory(b);
+			else
+				System.out.println("Not printing history--leads to stack overflow");
+			System.out.println(first15states);
+		}
+	}
+
+
+/*
+		public void iterativeDeepeningAStar(Board b)
+	{
+		{
+			System.out.println("===Iterative Deepening A*===");
+			int count = 0;//used to output the first 15 nodes visited
+			String first15states = "";
+			HashSet<String> observedNodes = new HashSet<String>();//keeps track of visited states
+			Vector<Board> vectorStk = new Vector<Board>();//holds future states to explore 
+			Vector<Board> successors = new Vector<Board>();
+			int depth = heuristicManhattan(b) + b.getPathFromStartNode().size();
+			int FirstDepth = depth;
+			vectorStk = b.getSuccessors();
+			successors.addElement(b);
+			for(int i = 0; i < vectorStk.size(); ++i){
+				vectorStk.elementAt(i).setCostEstimate(heuristicManhattan(vectorStk.elementAt(i)) + vectorStk.elementAt(i).getPathFromStartNode().size());
+			}
+			vectorStk = sortByCost(vectorStk, vectorStk.size());
+			int nextDepth = vectorStk.elementAt(0).getCostEstimate();
+			while(!b.equals(goal))
+			{
+				depth = nextDepth;
+				HashSet<String> observedNodesTemp = new HashSet<String>();
+				vectorStk.addAll(b.getSuccessors())
+				if(!successors.empty()){
+					while(!b.equals(goal) && successors.size() > 0){
+					observedNodes.add(b.toString()); //add current state to observed nodes
+					observedNodesTemp.add(b.toString());
+					vectorStk.addAll(b.getSuccessors()); //add all successors to stack
+					if(count < 15)
+					{
+						first15states += b + "\n";
+						count++;
+					}
+					while((vectorStk.size() > 0)){
+						b = vectorStk.elementAt(0);
+						b.setCostEstimate(i + 1);
+						if(!(b.getCostEstimate() > depth)){
+							successors.add(b);
+						}
+						vectorStk.removeElementAt(0);
+					}
+					b = successors.elementAt(0);
+									 //get first successor from stack
+					boolean notEmpty = true;
+					while(observedNodesTemp.contains(b.toString()) && notEmpty) //go to the next unobserved state
+					{
+						int index = successors.indexOf(b);
+						if((index + 1 < successors.size())){
+							b = successors.elementAt(index + 1);
+						}
+						else{
+							notEmpty = false;
+						}
+						successors.removeElementAt(index);
+						//System.out.println(successors.size());
+					}
+					++i;
+					//System.out.println(b);
+	
+					}
+				}
+				
+			}
+			System.out.println(observedNodes.size() + " nodes examined.");
+			if(observedNodes.size() < 10000)
+				printHistory(b);
+			else
+				System.out.println("Not printing history--leads to stack overflow");
+			System.out.println(first15states);
+		}
 	}
 	
+	/*
+	public void iterativeDeepeningAStar(Board b)
+	{
+		{
+			System.out.println("===Iterative Deepening A*===");
+			int count = 0;//used to output the first 15 nodes visited
+			String first15states = "";
+			HashSet<String> observedNodes = new HashSet<String>();//keeps track of visited states
+			Vector<Board> vectorStk = new Vector<Board>();//holds future states to explore 
+			Vector<Board> successors = new Vector<Board>();
+			int depth = heuristicManhattan(b) + b.getPathFromStartNode().size();
+			int FirstDepth = depth;
+			vectorStk = b.getSuccessors();
+			successors.addElement(b);
+			Board c = b;
+			for(int i = 0; i < vectorStk.size(); ++i){
+				vectorStk.elementAt(i).setCostEstimate(heuristicManhattan(vectorStk.elementAt(i)) + vectorStk.elementAt(i).getPathFromStartNode().size());
+			}
+			vectorStk = sortByCost(vectorStk, vectorStk.size());
+			int nextDepth = vectorStk.elementAt(0).getCostEstimate();
+			System.out.println("Depth " + depth + " nextDepth " + nextDepth);
+			while(!b.equals(goal))
+			{
+				depth = nextDepth;
+				nextDepth = FirstDepth;
+				System.out.println("Depth = " + depth);
+				HashSet<String> observedNodesTemp = new HashSet<String>();
+				if(!(successors.size() > 0)){
+					successors.addElement(c);
+					b = c;
+				}
+				while(!b.equals(goal) && successors.size() > 0){
+					observedNodes.add(b.toString()); //add current state to observed nodes
+					observedNodesTemp.add(b.toString());
+					vectorStk.removeAllElements();
+					vectorStk.addAll(b.getSuccessors()); //add all successors to stack
+					if(count < 15)
+					{
+						first15states += b + "\n";
+						count++;
+					}
+					successors.removeElementAt(0);
+					int i = 0;
+					while((vectorStk.size() > 0)){
+						b = vectorStk.elementAt(0);
+						b.setCostEstimate(heuristicManhattan(b) + b.getPathFromStartNode().size());
+						if((b.getCostEstimate() <= depth)){
+							successors.add(b);
+						}
+						else if(i == 0){
+							nextDepth = b.getCostEstimate();
+							++i;
+
+						}
+						else if(b.getCostEstimate() < nextDepth && b.getCostEstimate() > depth){
+							nextDepth = b.getCostEstimate();
+						}
+						vectorStk.removeElementAt(0);
+					}
+					successors = sortByCost(successors, successors.size());
+					if(successors.size() > 0){
+						b = successors.elementAt(0);
+					}
+					else{
+						b = null;
+					}
+									 //get first successor from stack
+					if(b != null){
+						boolean notEmpty = true;
+						while(observedNodesTemp.contains(b.toString()) && notEmpty) //go to the next unobserved state
+						{
+							int index = successors.indexOf(b);
+							successors.removeElementAt(index);
+							if((index + 1 < successors.size())){
+								b = successors.elementAt(index + 1);
+							}
+							else{
+								notEmpty = false;
+							}
+							System.out.println(successors.size());
+						}
+						System.out.println(b);
+					}
+				}
+			}
+			System.out.println(observedNodes.size() + " nodes examined.");
+			if(observedNodes.size() < 10000)
+				printHistory(b);
+			else
+				System.out.println("Not printing history--leads to stack overflow");
+			System.out.println(first15states);
+		}
+	}
+
+	*/
+	/*
+	public void iterativeDeepeningAStar(Board b)
+	{
+		{
+			System.out.println("===Iterative Deepening A*===");
+			int count = 0;//used to output the first 15 nodes visited
+			String first15states = "";
+			HashSet<String> observedNodes = new HashSet<String>();//keeps track of visited states
+			Vector<Board> vectorStk = new Vector<Board>();//holds future states to explore 
+			Vector<Board> successors = new Vector<Board>();
+			int depth = heuristicManhattan(b) + b.getPathFromStartNode().size();
+			successors.addElement(b);
+			while(!b.equals(goal))
+			{
+				int i = heuristicManhattan(b) + b.getPathFromStartNode().size();
+				int successorLevel = i;
+				HashSet<String> observedNodesTemp = new HashSet<String>();
+				while(!b.equals(goal) && successors.size() > 0){
+					int nextI = i;
+					System.out.println(i);
+					observedNodes.add(b.toString()); //add current state to observed nodes
+					observedNodesTemp.add(b.toString());
+					vectorStk = (b.getSuccessors()); //add all successors to stack
+					if(count < 15)
+					{
+						first15states += b + "\n";
+						count++;
+					}
+					int tempcount = 1;
+					successors.removeElementAt(successors.indexOf(b));
+					while(vectorStk.size() > 0){
+						b = vectorStk.elementAt(0);
+						System.out.println(b.toString());
+						b.setCostEstimate(heuristicManhattan(b) + b.getPathFromStartNode().size());
+						System.out.print("Before " + successorLevel);
+						System.out.println("\nb.getCostEstimate: " + b.getCostEstimate() + " > depth: " + depth);
+						if(!(b.getCostEstimate() > depth)){
+							successors.add(b);
+						}
+						else if(tempcount == 1){
+							++tempcount;
+							successorLevel = b.getCostEstimate();
+						}
+						else if(tempcount > 1){
+							int tempLevel =  b.getCostEstimate();
+							if(successorLevel > tempLevel){
+								successorLevel = tempLevel;
+							}
+						}
+						System.out.println("After: " + successorLevel);
+						vectorStk.removeElementAt(0);
+					}
+					System.out.println(successors.size());
+					successors = sortByCost(successors, successors.size());
+					b = successors.elementAt(successors.size() - 1);
+									 //get first successor from stack
+					boolean notEmpty = true;
+					while(observedNodesTemp.contains(b.toString()) && notEmpty) //go to the next unobserved state
+					{
+						int index = successors.indexOf(b);
+						if(index - 1 > 0){
+							b = successors.elementAt(index - 1);
+							nextI = b.getCostEstimate();
+						}
+						else{
+							nextI = depth;
+							notEmpty = false;
+						}
+						System.out.println(b);
+						successors.removeElementAt(index);
+					}
+					System.out.println("Size: " + successors.size());
+					i = nextI;
+					System.out.println(b);
+					System.out.println(successorLevel);
+				}
+				depth = successorLevel;
+			}
+			System.out.println(observedNodes.size() + " nodes examined.");
+			if(observedNodes.size() < 10000)
+				printHistory(b);
+			else
+				System.out.println("Not printing history--leads to stack overflow");
+			System.out.println(first15states);
+		}
+	}
+	
+	*/
 	
 	
+	
+	public Vector<Board> reverseVector(Vector<Board> successors){
+		Vector<Board> reversed = new Vector<Board>();
+		for(int i = successors.size()-1; !(i < 0); --i){
+			reversed.addElement(successors.elementAt(i));
+			successors.removeElementAt(i);
+		}
+		return reversed;
+	}
 	public Vector<Board> sortByCost(Vector<Board> successors, int size){
 		Vector<Board> sortedBoard = new Vector<Board>();
 		while(successors.size() > 0){
